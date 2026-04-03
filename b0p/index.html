@@ -1,0 +1,674 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>b0p — send a bop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
+<style>
+  :root {
+    --bg:           #0F0E09;
+    --bg-card:      #1B1912;
+    --bg-input:     #242218;
+    --accent:       #F0C040;
+    --accent-hover: #D9AB30;
+    --text:         #EDE8DC;
+    --text-muted:   #6E6A57;
+    --border:       #292518;
+    --green:        #4CAF50;
+    --radius:       12px;
+    --radius-sm:    8px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 0 22px 72px;
+  }
+
+  /* ── Logo ── */
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 72px;
+    line-height: 1;
+    letter-spacing: 3px;
+    color: var(--accent);
+    padding-top: 36px;
+    display: block;
+    user-select: none;
+  }
+  .logo .zero { color: var(--text); }
+
+  .tagline {
+    font-size: 13px;
+    color: var(--text-muted);
+    letter-spacing: 0.3px;
+    margin-top: 2px;
+    margin-bottom: 40px;
+  }
+
+  /* ── Labels ── */
+  .label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+  }
+
+  /* ── Inputs ── */
+  input[type="text"], textarea {
+    background: var(--bg-input);
+    border: 1.5px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    outline: none;
+    transition: border-color 0.15s;
+    width: 100%;
+  }
+  input[type="text"]:focus,
+  textarea:focus { border-color: var(--accent); }
+  input::placeholder, textarea::placeholder { color: var(--text-muted); }
+
+  /* ── Buttons ── */
+  .btn-primary {
+    background: var(--accent);
+    color: #0F0E09;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 14px 22px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s, transform 0.1s;
+    flex-shrink: 0;
+  }
+  .btn-primary:hover  { background: var(--accent-hover); }
+  .btn-primary:active { transform: scale(0.97); }
+  .btn-primary:disabled { opacity: 0.35; cursor: default; }
+
+  .btn-copy {
+    width: 100%;
+    background: var(--accent);
+    color: #0F0E09;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 24px;
+    letter-spacing: 2.5px;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 17px 16px 14px;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+  }
+  .btn-copy:hover  { background: var(--accent-hover); }
+  .btn-copy:active { transform: scale(0.98); }
+  .btn-copy.copied {
+    background: var(--green);
+    color: #fff;
+  }
+
+  /* ── Input row ── */
+  .input-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+
+  /* ── Loading ── */
+  .loading {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-muted);
+    font-size: 13px;
+    margin-bottom: 16px;
+  }
+  .loading.on { display: flex; }
+  .spinner {
+    width: 15px;
+    height: 15px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.65s linear infinite;
+    flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Error ── */
+  .error {
+    display: none;
+    background: #2A1010;
+    border: 1.5px solid #5A1E1E;
+    color: #FF8A8A;
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    font-size: 13px;
+    margin-bottom: 16px;
+  }
+  .error.on { display: block; }
+
+  /* ── Preview card ── */
+  .preview-card {
+    background: var(--bg-card);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    display: none;
+    animation: fadeUp 0.28s ease;
+  }
+  .preview-card.on { display: block; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .song-meta {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    margin-bottom: 22px;
+  }
+
+  .thumb {
+    width: 68px;
+    height: 68px;
+    border-radius: 8px;
+    object-fit: cover;
+    flex-shrink: 0;
+    background: var(--border);
+    display: none;
+  }
+  .thumb.on { display: block; }
+
+  .thumb-placeholder {
+    width: 68px;
+    height: 68px;
+    border-radius: 8px;
+    background: var(--border);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+  }
+
+  .song-title  { font-size: 17px; font-weight: 700; line-height: 1.3; margin-bottom: 3px; }
+  .song-artist { font-size: 13px; color: var(--text-muted); }
+
+  /* ── Note area ── */
+  .note-wrap {
+    position: relative;
+    margin-bottom: 16px;
+  }
+  .note-wrap textarea {
+    resize: none;
+    min-height: 86px;
+    font-size: 14px;
+    line-height: 1.55;
+    padding-bottom: 28px;
+  }
+  .char-count {
+    position: absolute;
+    bottom: 10px;
+    right: 12px;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    pointer-events: none;
+  }
+  .char-count.warn { color: #FF6B4A; }
+
+  /* ──────────────────────────────────────────
+     RECEIVER
+  ────────────────────────────────────────── */
+  #receiver-view { display: none; }
+
+  .rec-eyebrow {
+    padding-top: 36px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+  .rec-headline {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 52px;
+    letter-spacing: 2px;
+    color: var(--accent);
+    line-height: 1;
+    margin-bottom: 24px;
+  }
+
+  .yt-frame {
+    width: 100%;
+    aspect-ratio: 16/9;
+    border-radius: var(--radius);
+    border: none;
+    margin-bottom: 20px;
+    background: #000;
+    display: none;
+  }
+  .yt-frame.on { display: block; }
+
+  .rec-thumb {
+    width: 100%;
+    max-height: 260px;
+    object-fit: cover;
+    border-radius: var(--radius);
+    margin-bottom: 20px;
+    display: none;
+  }
+  .rec-thumb.on { display: block; }
+
+  .rec-song-title  { font-size: 22px; font-weight: 700; line-height: 1.25; margin-bottom: 5px; }
+  .rec-song-artist { font-size: 14px; color: var(--text-muted); margin-bottom: 20px; }
+
+  .rec-note {
+    background: var(--bg-card);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    padding: 14px 16px;
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--text);
+    margin-bottom: 28px;
+    font-style: italic;
+    display: none;
+  }
+  .rec-note.on { display: block; }
+
+  /* ── Platform buttons ── */
+  .platform-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 12px;
+    margin-bottom: 36px;
+  }
+
+  .p-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px 12px;
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    transition: opacity 0.15s, transform 0.1s;
+    color: #fff;
+    text-align: center;
+  }
+  .p-btn:hover  { opacity: 0.82; }
+  .p-btn:active { transform: scale(0.97); }
+
+  .p-spotify       { background: #1DB954; }
+  .p-appleMusic    { background: #FC3C44; }
+  .p-youtube       { background: #FF0000; }
+  .p-youtubeMusic  { background: #C4001A; }
+  .p-tidal         { background: #00FFFF; color: #000 !important; }
+  .p-deezer        { background: #A238FF; }
+  .p-amazon        { background: #00A8E0; }
+  .p-soundcloud    { background: #FF5500; }
+
+  /* ── Footer CTA ── */
+  .footer-cta {
+    border-top: 1px solid var(--border);
+    padding-top: 28px;
+    text-align: center;
+  }
+  .footer-cta p {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    letter-spacing: 0.3px;
+  }
+  .footer-cta a {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 2px;
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .footer-cta a:hover { color: var(--accent-hover); }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════
+     SENDER VIEW
+═══════════════════════════════════════ -->
+<div id="sender-view">
+  <div class="logo">b<span class="zero">0</span>p</div>
+  <p class="tagline">paste a song. send a bop.</p>
+
+  <p class="label">drop a link</p>
+  <div class="input-row">
+    <input type="text" id="link-input"
+      placeholder="Spotify, Apple Music, YouTube…"
+      autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+    <button class="btn-primary" id="find-btn">Find</button>
+  </div>
+
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    looking it up…
+  </div>
+
+  <div class="error" id="error"></div>
+
+  <div class="preview-card" id="preview-card">
+    <div class="song-meta">
+      <img class="thumb" id="thumb" src="" alt="">
+      <div class="thumb-placeholder" id="thumb-placeholder">🎵</div>
+      <div>
+        <div class="song-title"  id="song-title">—</div>
+        <div class="song-artist" id="song-artist">—</div>
+      </div>
+    </div>
+
+    <p class="label">add a note (optional)</p>
+    <div class="note-wrap">
+      <textarea id="note-input"
+        placeholder="e.g. the guitar at 2:14 is unreal…"
+        maxlength="500"></textarea>
+      <span class="char-count" id="char-count">0 / 500</span>
+    </div>
+
+    <button class="btn-copy" id="copy-btn">COPY YOUR BOP LINK</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     RECEIVER VIEW
+═══════════════════════════════════════ -->
+<div id="receiver-view">
+  <p class="rec-eyebrow">someone sent you a</p>
+  <div class="rec-headline">b0p 🎵</div>
+
+  <iframe class="yt-frame" id="yt-frame"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen></iframe>
+
+  <img class="rec-thumb" id="rec-thumb" src="" alt="">
+
+  <div class="rec-song-title"  id="rec-song-title">—</div>
+  <div class="rec-song-artist" id="rec-song-artist">—</div>
+
+  <div class="rec-note" id="rec-note"></div>
+
+  <p class="label">open in your app</p>
+  <div class="platform-grid" id="platform-grid"></div>
+
+  <div class="footer-cta">
+    <p>got a bop to share?</p>
+    <a id="send-own-link" href="#">send your own →</a>
+  </div>
+</div>
+
+<script>
+// =============================================================================
+// b0p.app — send a bop
+// Changelog:
+//   v20260401-01 — initial build: sender + receiver views, odesli API lookup,
+//   v20260401-02 — route odesli fetch through corsproxy.io to fix CORS block
+//                  LZString URL hash state, YouTube embed on receiver,
+//                  platform buttons, 500-char note, clipboard copy
+// =============================================================================
+
+const PLATFORMS = {
+  spotify:      'Spotify',
+  appleMusic:   'Apple Music',
+  youtube:      'YouTube',
+  youtubeMusic: 'YouTube Music',
+  tidal:        'Tidal',
+  deezer:       'Deezer',
+  amazon:       'Amazon Music',
+  soundcloud:   'SoundCloud',
+};
+
+// ─── Routing ─────────────────────────────────────────────────────────────────
+
+function parseHash() {
+  const h = window.location.hash;
+  if (!h.startsWith('#b/')) return null;
+  try {
+    const raw = LZString.decompressFromEncodedURIComponent(h.slice(3));
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
+const recData = parseHash();
+
+if (recData) {
+  document.getElementById('sender-view').style.display = 'none';
+  document.getElementById('receiver-view').style.display = 'block';
+  renderReceiver(recData);
+} else {
+  initSender();
+}
+
+// ─── Sender ──────────────────────────────────────────────────────────────────
+
+let resolved = null;
+
+function initSender() {
+  const $link  = document.getElementById('link-input');
+  const $find  = document.getElementById('find-btn');
+  const $note  = document.getElementById('note-input');
+  const $count = document.getElementById('char-count');
+  const $copy  = document.getElementById('copy-btn');
+
+  $find.addEventListener('click', lookupSong);
+  $link.addEventListener('keydown', e => { if (e.key === 'Enter') lookupSong(); });
+
+  $note.addEventListener('input', () => {
+    const n = $note.value.length;
+    $count.textContent = `${n} / 500`;
+    $count.classList.toggle('warn', n > 450);
+  });
+
+  $copy.addEventListener('click', copyLink);
+}
+
+async function lookupSong() {
+  const url = document.getElementById('link-input').value.trim();
+  if (!url) return;
+
+  setLoading(true);
+  setError('');
+  setPreview(false);
+  resolved = null;
+
+  try {
+  try {
+    const res = await fetch(`https://api.song.link/v1-alpha.1/links?url=${encodeURIComponent(url)}`);
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(
+        err?.code === 'COULD_NOT_RESOLVE_ENTITY'
+          ? "Couldn't find that song. Try a different link."
+          : `Error ${res.status}. Try a different link.`
+      );
+    }
+
+    const data = await res.json();
+    resolved = parseSongData(data);
+    showPreview(resolved);
+  } catch (e) {
+    setError(e.message || 'Something went wrong. Try again.');
+  } finally {
+    setLoading(false);
+  }
+}
+
+function parseSongData(data) {
+  // Find best entity (one with a title)
+  const entities = Object.values(data.entitiesByUniqueId || {});
+  const entity   = entities.find(e => e.title) || entities[0] || {};
+
+  // Collect available platform URLs
+  const p = {};
+  const links = data.linksByPlatform || {};
+  Object.keys(PLATFORMS).forEach(key => {
+    if (links[key]?.url) p[key] = links[key].url;
+  });
+
+  // Extract YouTube video ID
+  const ytUrl = p.youtube || p.youtubeMusic || '';
+  const ytId  = extractYtId(ytUrl);
+
+  return {
+    t:   entity.title      || 'Unknown Title',
+    a:   entity.artistName || 'Unknown Artist',
+    img: entity.thumbnailUrl || '',
+    yt:  ytId,
+    p,
+  };
+}
+
+function extractYtId(url) {
+  if (!url) return '';
+  const m = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  return m ? m[1] : '';
+}
+
+function showPreview(song) {
+  document.getElementById('song-title').textContent  = song.t;
+  document.getElementById('song-artist').textContent = song.a;
+
+  const $thumb = document.getElementById('thumb');
+  const $ph    = document.getElementById('thumb-placeholder');
+
+  if (song.img) {
+    $thumb.src = song.img;
+    $thumb.classList.add('on');
+    $ph.style.display = 'none';
+  } else {
+    $thumb.classList.remove('on');
+    $ph.style.display = 'flex';
+  }
+
+  setPreview(true);
+}
+
+async function copyLink() {
+  if (!resolved) return;
+
+  const note    = document.getElementById('note-input').value.trim();
+  const payload = { ...resolved };
+  if (note) payload.n = note;
+
+  const encoded = LZString.compressToEncodedURIComponent(JSON.stringify(payload));
+  const base    = window.location.origin + window.location.pathname;
+  const bopUrl  = `${base}#b/${encoded}`;
+
+  try {
+    await navigator.clipboard.writeText(bopUrl);
+  } catch {
+    // Fallback for non-HTTPS / older browsers
+    const ta = document.createElement('textarea');
+    ta.value = bopUrl;
+    Object.assign(ta.style, { position: 'fixed', opacity: '0' });
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  }
+
+  const $btn = document.getElementById('copy-btn');
+  $btn.textContent = '✓ COPIED!';
+  $btn.classList.add('copied');
+  setTimeout(() => {
+    $btn.textContent = 'COPY YOUR BOP LINK';
+    $btn.classList.remove('copied');
+  }, 2500);
+}
+
+// ─── Sender helpers ──────────────────────────────────────────────────────────
+
+function setLoading(on) {
+  document.getElementById('loading').classList.toggle('on', on);
+  document.getElementById('find-btn').disabled = on;
+}
+
+function setError(msg) {
+  const $e = document.getElementById('error');
+  $e.textContent = msg;
+  $e.classList.toggle('on', !!msg);
+}
+
+function setPreview(on) {
+  document.getElementById('preview-card').classList.toggle('on', on);
+}
+
+// ─── Receiver ────────────────────────────────────────────────────────────────
+
+function renderReceiver(song) {
+  // Song info
+  document.getElementById('rec-song-title').textContent  = song.t || '—';
+  document.getElementById('rec-song-artist').textContent = song.a || '—';
+
+  // YouTube embed (preferred) or thumbnail fallback
+  const $yt    = document.getElementById('yt-frame');
+  const $thumb = document.getElementById('rec-thumb');
+
+  if (song.yt) {
+    $yt.src = `https://www.youtube.com/embed/${song.yt}`;
+    $yt.classList.add('on');
+  } else if (song.img) {
+    $thumb.src = song.img;
+    $thumb.classList.add('on');
+  }
+
+  // Note
+  if (song.n) {
+    const $note = document.getElementById('rec-note');
+    $note.textContent = `"${song.n}"`;
+    $note.classList.add('on');
+  }
+
+  // Platform buttons
+  const $grid = document.getElementById('platform-grid');
+  Object.entries(song.p || {}).forEach(([key, url]) => {
+    if (!url || !PLATFORMS[key]) return;
+    const a = Object.assign(document.createElement('a'), {
+      href:      url,
+      target:    '_blank',
+      rel:       'noopener noreferrer',
+      className: `p-btn p-${key}`,
+      textContent: PLATFORMS[key],
+    });
+    $grid.appendChild(a);
+  });
+
+  // "Send your own" link — strip hash
+  const base = window.location.origin + window.location.pathname;
+  document.getElementById('send-own-link').href = base;
+}
+</script>
+</body>
+</html>
